@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: rikkeipay-tracing-resilience
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:3000/api/public/otlp/v1/traces
+      headers:
+        Authorization: "Basic cGstbGYtZGV2LWtleTpzay1sZi1kZXYtc2VjcmV0"
+
+# Cấu hình OpenTelemetry Batch Span Processor bất đồng bộ phòng thủ chống nghẽn luồng
+opentelemetry:
+  tracer:
+    exporter:
+      otlp:
+        endpoint: http://localhost:3000/api/public/otlp/v1/traces
+        protocol: http/protobuf
+        timeout: 5s
+    processor:
+      batch:
+        max-queue-size: 2048        # Kích thước tối đa hàng đợi đệm trong RAM (2048 spans)
+        schedule-delay: 5s          # Khoảng thời gian định kỳ đẩy batch sang Langfuse (5 giây)
+        max-export-batch-size: 512  # Số lượng spans gửi tối đa trong 1 đợt batch
+        export-timeout: 5s          # Timeout tối đa chờ hạ tầng OTLP phản hồi (5 giây)
+
+spring.ai.openai:
+  api-key: ${ROUTER_API_KEY:sk-or-v1-dummy-key-for-test}
+  base-url: https://openrouter.ai/api/v1
+  chat.options.model: google/gemini-2.5-flash
+
+server:
+  port: 8080
